@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getApiUrl } from '../config';
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -32,8 +31,7 @@ export default function Register() {
         setIsLoading(true);
         setError('');
 
-        const apiUrl = getApiUrl();
-        const registerUrl = `${apiUrl}/register`;
+        const registerUrl = `${process.env.NEXT_PUBLIC_API_URL}/register`;
         
         console.log('Attempting registration to:', registerUrl);
         console.log('Environment:', process.env.NODE_ENV);

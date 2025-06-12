@@ -100,7 +100,7 @@ export function PdfUpload() {
             }
 
             // Upload the file
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_ROOT}/upload`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
-import { getApiUrl } from '../config';
 
 export default function Login() {
     const [formData, setFormData] = useState({
@@ -28,8 +27,7 @@ export default function Login() {
         setError('');
         setIsLoading(true);
 
-        const apiUrl = getApiUrl();
-        const loginUrl = `${apiUrl}/login`;
+        const loginUrl = `${process.env.NEXT_PUBLIC_API_URL}/login`;
         
         console.log('Attempting login to:', loginUrl);
         console.log('Environment:', process.env.NODE_ENV);
