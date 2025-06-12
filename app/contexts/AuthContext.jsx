@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
 
     const register = async (username, password, userData) => {
         try {
-            const response = await fetch('http://localhost:8000/register', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_ROOT}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
     const logout = async () => {
         try {
             if (user?.token) {
-                await fetch('http://localhost:8000/logout', {
+                await fetch(`${process.env.NEXT_PUBLIC_API_ROOT}/logout`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${user.token}`,

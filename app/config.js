@@ -1,10 +1,10 @@
 const config = {
   development: {
-    apiUrl: 'http://localhost:8000',
+    apiUrl: process.env.NEXT_PUBLIC_API_ROOT || 'http://localhost:8000',
     environment: 'development'
   },
   production: {
-    apiUrl: 'https://hipaasummarizerbackend.up.railway.app',
+    apiUrl: process.env.NEXT_PUBLIC_API_ROOT || 'https://hipaasummarizerbackend.up.railway.app',
     environment: 'production'
   }
 };
@@ -16,7 +16,15 @@ export const getConfig = () => {
   return config[env] || config.development;
 };
 
-export const getApiUrl = "https://hipaa-summarizer-backend.onrender.com/";
+// Export as a constant function to ensure it's always callable
+export const getApiUrl = function() {
+  const apiRoot = process.env.NEXT_PUBLIC_API_ROOT;
+  if (apiRoot) {
+    return apiRoot.endsWith('/') ? apiRoot.slice(0, -1) : apiRoot;
+  }
+  return getConfig().apiUrl;
+};
+
 // 
 // () => {
 //   return process.env.NEXT_PUBLIC_API_URL || getConfig().apiUrl;

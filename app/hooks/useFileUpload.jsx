@@ -26,7 +26,7 @@ export function useFileUpload() {
 
             // Step 2: Send to backend
             setProgress(50);
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_ROOT}/upload`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
