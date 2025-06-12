@@ -4,44 +4,84 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
+import { getApiUrl } from '../config';
 
 export default function Login() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [formData, setFormData] = useState({
+        username: '',
+        password: ''
+    });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { login } = useAuth();
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
+        const apiUrl = getApiUrl();
+        const loginUrl = `${apiUrl}/login`;
+        
+        console.log('Attempting login to:', loginUrl);
+        console.log('Environment:', process.env.NODE_ENV);
+
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+            const response = await fetch(loginUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({
-                    username: username,
-                    password: password
-                })
+                    username: formData.username,
+                    password: formData.password,
+                }),
+            }).catch(error => {
+                console.error('Network error:', error);
+                throw new Error('Network error: Unable to reach the server. Please check your internet connection.');
             });
 
+            console.log('Response status:', response.status);
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Login failed');
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.detail || 'Login failed';
+                } catch (e) {
+                    errorMessage = responseText || 'Login failed';
+                }
+                throw new Error(errorMessage);
             }
 
-            const data = await response.json();
-            await login(data.access_token);
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse response:', e);
+                throw new Error('Invalid server response');
+            }
+
+            if (!data.access_token) {
+                throw new Error('No access token received');
+            }
+
+            login(data.access_token);
             router.push('/');
-            router.refresh();
-        } catch (error) {
-            console.error('Login error:', error);
-            setError(error.message || 'Failed to login. Please try again.');
+        } catch (err) {
+            console.error('Login error:', err);
+            setError(err.message || 'Failed to login. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -71,8 +111,8 @@ export default function Login() {
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                value={formData.username}
+                                onChange={handleChange}
                             />
                         </div>
                         <div>
@@ -86,8 +126,8 @@ export default function Login() {
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                value={formData.password}
+                                onChange={handleChange}
                             />
                         </div>
                     </div>

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
+import { getApiUrl } from '../config';
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -19,14 +19,12 @@ export default function Register() {
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { register } = useAuth();
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -34,11 +32,18 @@ export default function Register() {
         setIsLoading(true);
         setError('');
 
+        const apiUrl = getApiUrl();
+        const registerUrl = `${apiUrl}/register`;
+        
+        console.log('Attempting registration to:', registerUrl);
+        console.log('Environment:', process.env.NODE_ENV);
+
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
+            const response = await fetch(registerUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({
                     username: formData.username,
@@ -50,11 +55,36 @@ export default function Register() {
                     ssn: formData.ssn,
                     role: 'user'
                 }),
+            }).catch(error => {
+                console.error('Network error:', error);
+                throw new Error('Network error: Unable to reach the server. Please check your internet connection.');
             });
 
+            console.log('Response status:', response.status);
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Registration failed');
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.detail || 'Registration failed';
+                } catch (e) {
+                    errorMessage = responseText || 'Registration failed';
+                }
+                throw new Error(errorMessage);
+            }
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse response:', e);
+                throw new Error('Invalid server response');
+            }
+
+            if (!data.message) {
+                throw new Error('Invalid server response');
             }
 
             setError('');
@@ -65,7 +95,8 @@ export default function Register() {
             }, 2000);
 
         } catch (err) {
-            setError(err.message);
+            console.error('Registration error:', err);
+            setError(err.message || 'Failed to register. Please try again.');
         } finally {
             setIsLoading(false);
         }
