@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
 
@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for existing token in localStorage
+        // Check if user is logged in on mount
         const token = localStorage.getItem('token');
         if (token) {
             setUser({ token });
@@ -17,23 +17,10 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
-    const login = async (username, password) => {
+    const login = async (token) => {
         try {
-            const response = await fetch('http://localhost:8000/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Login failed');
-            }
-
-            const data = await response.json();
-            localStorage.setItem('token', data.access_token);
-            setUser({ token: data.access_token });
+            localStorage.setItem('token', token);
+            setUser({ token });
             return true;
         } catch (error) {
             console.error('Login error:', error);
@@ -41,24 +28,29 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const register = async (username, password, role = 'user') => {
+    const register = async (username, password, userData) => {
         try {
             const response = await fetch('http://localhost:8000/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password, role }),
+                body: JSON.stringify({
+                    username,
+                    password,
+                    ...userData
+                }),
             });
 
             if (!response.ok) {
-                throw new Error('Registration failed');
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Registration failed');
             }
 
             return true;
         } catch (error) {
             console.error('Registration error:', error);
-            return false;
+            throw error;
         }
     };
 
@@ -81,26 +73,29 @@ export function AuthProvider({ children }) {
     };
 
     const getAuthHeader = () => {
-        return user?.token ? { 'Authorization': `Bearer ${user.token}` } : {};
+        const token = localStorage.getItem('token');
+        return token ? { 'Authorization': `Bearer ${token}` } : null;
+    };
+
+    const value = {
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        getAuthHeader
     };
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            loading,
-            login,
-            register,
-            logout,
-            getAuthHeader,
-        }}>
-            {children}
+        <AuthContext.Provider value={value}>
+            {!loading && children}
         </AuthContext.Provider>
     );
 }
 
 export function useAuth() {
     const context = useContext(AuthContext);
-    if (!context) {
+    if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;

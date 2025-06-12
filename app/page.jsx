@@ -1,9 +1,9 @@
 "use client";
 
 import { PdfUpload } from "./components/pdfpload";
-import { Login } from "./components/Login";
-import { useAuth } from "./context/AuthContext";
-import { AuthProvider } from "./context/AuthContext";
+import Login from "./components/Login";
+import { useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 function MainContent() {
     const { user, loading, logout } = useAuth();
