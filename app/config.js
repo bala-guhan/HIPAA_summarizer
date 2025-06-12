@@ -16,6 +16,8 @@ export const getConfig = () => {
   return config[env] || config.development;
 };
 
-export const getApiUrl = () => {
-  return process.env.NEXT_PUBLIC_API_URL || getConfig().apiUrl;
-}; 
+export const getApiUrl = "https://hipaa-summarizer-backend.onrender.com/";
+// 
+// () => {
+//   return process.env.NEXT_PUBLIC_API_URL || getConfig().apiUrl;
+// }; 
