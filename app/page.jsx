@@ -4,6 +4,7 @@ import { PdfUpload } from "./components/pdfpload";
 import Login from "./components/Login";
 import { useAuth } from "./contexts/AuthContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import Logout from "./components/logout";
 
 function MainContent() {
     const { user, loading, logout } = useAuth();
@@ -21,20 +22,15 @@ function MainContent() {
     }
 
     return (
-        <div>
-            <div className="bg-black shadow">
+        <div className="bg-transparent">
+            <div className="bg-transparent text-black">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
                         <div className="flex items-center">
                             <h1 className="text-xl font-bold">HIPAA-Compliant Document Upload</h1>
                         </div>
                         <div className="flex items-center">
-                            <button
-                                onClick={logout}
-                                className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            >
-                                Logout
-                            </button>
+                            <Logout username={user?.username} email={user?.email} logout={logout} />
                         </div>
                     </div>
                 </div>

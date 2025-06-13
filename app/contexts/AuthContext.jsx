@@ -17,6 +17,19 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(data => setUser({ token, ...data }))
+            .catch(() => setUser({ token })); // fallback if /me fails
+        }
+        setLoading(false);
+    }, []);
+
     const login = async (token) => {
         try {
             localStorage.setItem('token', token);

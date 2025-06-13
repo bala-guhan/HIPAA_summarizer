@@ -52,14 +52,14 @@ const downloadSummaryAsPDF = (summary) => {
 
 export function PdfUpload() {
     const [isDragging, setIsDragging] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState('Loading...');
+    const [uploadStatus, setUploadStatus] = useState('...');
     const [error, setError] = useState(null);
     const [processingTime, setProcessingTime] = useState(null);
     const [phiVerification, setPhiVerification] = useState(null);
     const [summary, setSummary] = useState(null);
     const [isPhiExpanded, setIsPhiExpanded] = useState(false);
     const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
-    const [processingStep, setProcessingStep] = useState('Loading...');
+    const [processingStep, setProcessingStep] = useState('...');
     const phiContentRef = useRef(null);
     const summaryContentRef = useRef(null);
     const { getAuthHeader } = useAuth();
@@ -73,6 +73,7 @@ export function PdfUpload() {
             }, 1000);
         } else if (uploadStatus === 'complete' || uploadStatus === 'error') {
             // Stop timer, keep the last value
+
             clearInterval(timer);
         } else {
             setProcessingTime(null);
@@ -186,7 +187,7 @@ export function PdfUpload() {
     return (
         <div className="w-full max-w-2xl mx-auto p-6">
             <div
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-all hover:scale-105"
+                className="max-w-80 mx-auto bg-transparent border-2 border-dashed border-black-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-all hover:scale-105"
                 onDragOver={(e) => {
                     e.preventDefault();
                     setIsDragging(true);
@@ -208,7 +209,7 @@ export function PdfUpload() {
                     <div className="space-y-4 flex flex-col items-center justify-center">
                     <img className="w-1/4 h-1/4" src="/pdf.png" alt="pdf" />
                     <div className="text-xl font-semibold text-gray-700">
-                        {uploadStatus === 'Loading...' && 'Drag and drop your files here or click on this to select'}
+                        {uploadStatus === '...' && 'Drag and drop your files here or click on this to select'}
                         {uploadStatus === 'uploading' && 'Uploading...'}
                         {uploadStatus === 'complete' && 'Upload complete!'}
                         {uploadStatus === 'error' && 'Upload failed'}
@@ -227,7 +228,7 @@ export function PdfUpload() {
             </div>
             
 
-            <div className="mt-6 bg-white text-black p-4 border rounded-lg text-center hover:bg-gray-50 font-bold">
+            <div className="mt-6 bg-transparent text-black p-4 rounded-lg text-center font-bold">
                 <div className="text-xl font-bold text-center flex items-center justify-center min-h-[2.5rem]">
                   {(uploadStatus === 'uploading' || uploadStatus === 'preparing') && (
                     <svg className="animate-spin h-6 w-6 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -235,7 +236,7 @@ export function PdfUpload() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                     </svg>
                   )}
-                  <span>{processingStep || 'Loading...'}</span>
+                  <span>{processingStep || '...'}</span>
                 </div>
             </div>
             {/*phiVerification && (
