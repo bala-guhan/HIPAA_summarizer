@@ -52,13 +52,14 @@ const downloadSummaryAsPDF = (summary) => {
 
 export function PdfUpload() {
     const [isDragging, setIsDragging] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState('idle');
+    const [uploadStatus, setUploadStatus] = useState('Loading...');
     const [error, setError] = useState(null);
     const [processingTime, setProcessingTime] = useState(null);
     const [phiVerification, setPhiVerification] = useState(null);
     const [summary, setSummary] = useState(null);
     const [isPhiExpanded, setIsPhiExpanded] = useState(false);
     const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+    const [processingStep, setProcessingStep] = useState('Loading...');
     const phiContentRef = useRef(null);
     const summaryContentRef = useRef(null);
     const { getAuthHeader } = useAuth();
@@ -68,8 +69,11 @@ export function PdfUpload() {
         let timer;
         if (uploadStatus === 'uploading') {
             timer = setInterval(() => {
-                setProcessingTime(prev => prev + 1);
+                setProcessingTime(prev => (prev === null ? 1 : prev + 1));
             }, 1000);
+        } else if (uploadStatus === 'complete' || uploadStatus === 'error') {
+            // Stop timer, keep the last value
+            clearInterval(timer);
         } else {
             setProcessingTime(null);
         }
@@ -82,6 +86,7 @@ export function PdfUpload() {
         try {
             setUploadStatus('preparing');
             setError(null);
+            setProcessingStep('Preparing');
 
             // Read file as base64
             const reader = new FileReader();
@@ -92,6 +97,7 @@ export function PdfUpload() {
             });
 
             setUploadStatus('uploading');
+            setProcessingStep('Uploading');
 
             // Get auth header
             const authHeader = getAuthHeader();
@@ -99,7 +105,7 @@ export function PdfUpload() {
                 throw new Error('No authentication token found');
             }
 
-            // Upload the file
+            // Upload the file with streaming progress
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
                 method: 'POST',
                 headers: {
@@ -111,15 +117,49 @@ export function PdfUpload() {
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Upload failed');
+            if (!response.body) {
+                throw new Error('No response body');
             }
 
-            const data = await response.json();
-            setSummary(data.summary);
-            setPhiVerification(data.phi_verification);
-            setUploadStatus('complete');
+            const readerStream = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            let done = false;
+            let finalSummary = null;
+            let finalPhi = null;
+            while (!done) {
+                const { value, done: streamDone } = await readerStream.read();
+                if (value) {
+                    buffer += decoder.decode(value, { stream: true });
+                    let lines = buffer.split('\n');
+                    buffer = lines.pop(); // last line may be incomplete
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const data = JSON.parse(line);
+                            setProcessingStep(data.progress);
+                            if (data.error) {
+                                setError(data.progress);
+                                setUploadStatus('error');
+                                done = true;
+                                break;
+                            }
+                            if (data.done) {
+                                finalSummary = data.summary;
+                                finalPhi = data.phi_verification;
+                                setUploadStatus('complete');
+                                done = true;
+                                break;
+                            }
+                        } catch (e) {
+                            // Ignore JSON parse errors for incomplete lines
+                        }
+                    }
+                }
+                if (streamDone) break;
+            }
+            if (finalSummary) setSummary(finalSummary);
+            if (finalPhi) setPhiVerification(finalPhi);
         } catch (error) {
             console.error('Upload error:', error);
             setError(error.message || 'Failed to upload file');
@@ -146,7 +186,7 @@ export function PdfUpload() {
     return (
         <div className="w-full max-w-2xl mx-auto p-6">
             <div
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-all hover:scale-105"
                 onDragOver={(e) => {
                     e.preventDefault();
                     setIsDragging(true);
@@ -165,10 +205,10 @@ export function PdfUpload() {
                     accept=".pdf"
                     onChange={(e) => handleFileSelect(e)}
                 />
-                <div className="space-y-4">
-                    <div className="text-6xl text-gray-400">📄</div>
+                    <div className="space-y-4 flex flex-col items-center justify-center">
+                    <img className="w-1/4 h-1/4" src="/pdf.png" alt="pdf" />
                     <div className="text-xl font-semibold text-gray-700">
-                        {uploadStatus === 'idle' && 'Drag and drop your PDF here, or click to select'}
+                        {uploadStatus === 'Loading...' && 'Drag and drop your files here or click on this to select'}
                         {uploadStatus === 'uploading' && 'Uploading...'}
                         {uploadStatus === 'complete' && 'Upload complete!'}
                         {uploadStatus === 'error' && 'Upload failed'}
@@ -178,15 +218,27 @@ export function PdfUpload() {
                             {error}
                         </div>
                     )}
-                    {processingTime && (
+                    {((uploadStatus === 'uploading' || uploadStatus === 'complete') && processingTime !== null) && (
                         <div className="text-sm text-gray-500">
                             Processing time: {processingTime} seconds
                         </div>
                     )}
                 </div>
             </div>
+            
 
-            {phiVerification && (
+            <div className="mt-6 bg-white text-black p-4 border rounded-lg text-center hover:bg-gray-50 font-bold">
+                <div className="text-xl font-bold text-center flex items-center justify-center min-h-[2.5rem]">
+                  {(uploadStatus === 'uploading' || uploadStatus === 'preparing') && (
+                    <svg className="animate-spin h-6 w-6 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    </svg>
+                  )}
+                  <span>{processingStep || 'Loading...'}</span>
+                </div>
+            </div>
+            {/*phiVerification && (
                 <div className="mt-6">
                     <div 
                         className="p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
@@ -220,7 +272,7 @@ export function PdfUpload() {
                         </div>
                     </div>
                 </div>
-            )}
+            )*/}
 
             {summary && (
                 <div className="mt-6">
@@ -240,7 +292,7 @@ export function PdfUpload() {
                         <div 
                             ref={summaryContentRef}
                             className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                                isSummaryExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+                                isSummaryExpanded ? 'max-h-full opacity-100' : 'max-h-0 opacity-0'
                             }`}
                         >
                             <div className="mt-4">
